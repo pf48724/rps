@@ -1,3 +1,3 @@
 Smart rock paper scissors bot
 
-[Try Here](roshambo.up.railway.app)
+[Try Here](https://roshambo.up.railway.app)
