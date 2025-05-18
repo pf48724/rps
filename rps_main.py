@@ -28,8 +28,8 @@ class RPSMain:
         if not self.opponent_history:
             return random.choice(self.moves)
 
-        self.confidence = min(0.9, 0.1 + 0.15 * len(self.opponent_history))
-        if random.random() < self.exploration_rate:
+        current_exploration = self.exploration_rate * (1 - self.confidence)
+        if random.random() < current_exploration:
             return random.choice(self.moves)
 
         predicted = self._make_prediction()
@@ -43,14 +43,20 @@ class RPSMain:
             'psychology': self._psychology_prediction(),
             'pattern': self._pattern_prediction()
         }
-
+        
         moves_played = len(self.opponent_history)
         if moves_played <= 2:
-            weights = {'markov': 0.1, 'frequency': 0.3, 'psychology': 0.5, 'pattern': 0.1}
+            weights = {'markov': 0.15, 'frequency': 0.25, 'psychology': 0.45, 'pattern': 0.15}
         elif moves_played <= 5:
-            weights = {'markov': 0.3, 'frequency': 0.2, 'psychology': 0.3, 'pattern': 0.2}
+            weights = {'markov': 0.25, 'frequency': 0.15, 'psychology': 0.35, 'pattern': 0.25}
         else:
-            weights = {'markov': 0.4, 'frequency': 0.1, 'psychology': 0.2, 'pattern': 0.3}
+            recent_results = self.results_history[-5:] if len(self.results_history) > 5 else self.results_history
+            success_rate = sum(1 for r in recent_results if r > 0) / len(recent_results)
+            
+            if success_rate > 0.6:
+                weights = {'markov': 0.4, 'frequency': 0.1, 'psychology': 0.2, 'pattern': 0.3}
+            else:
+                weights = {'markov': 0.25, 'frequency': 0.25, 'psychology': 0.25, 'pattern': 0.25}
 
         vote = defaultdict(float)
         for strat, pred in strategies.items():
@@ -69,7 +75,17 @@ class RPSMain:
     def _frequency_prediction(self):
         if not self.frequency_table:
             return random.choice(self.moves)
-        return self.frequency_table.most_common(1)[0][0]
+            
+        recent_moves = Counter(self.opponent_history[-10:])
+        for move, count in recent_moves.items():
+            self.frequency_table[move] += count
+            
+        prediction = self.frequency_table.most_common(1)[0][0]
+        
+        for move, count in recent_moves.items():
+            self.frequency_table[move] -= count
+            
+        return prediction
 
     def _psychology_prediction(self):
         last_move = self.opponent_history[-1]
@@ -94,9 +110,16 @@ class RPSMain:
         if len(self.opponent_history) < 3:
             return random.choice(self.moves)
 
-        pattern = tuple(self.opponent_history[-2:])
+        pattern = (tuple(self.opponent_history[-2:]), tuple(self.results_history[-2:]))
+        
         if pattern in self.last_n_transitions:
             follows = Counter(self.last_n_transitions[pattern])
+            if follows:
+                return follows.most_common(1)[0][0]
+
+        move_pattern = tuple(self.opponent_history[-2:])
+        if move_pattern in self.last_n_transitions:
+            follows = Counter(self.last_n_transitions[move_pattern])
             if follows:
                 return follows.most_common(1)[0][0]
 
@@ -140,4 +163,5 @@ class RPSMain:
             if len(self.last_n_transitions) > 50:
                 least_common = Counter({k: len(v) for k, v in self.last_n_transitions.items()}).most_common()[:-10]
                 for k, _ in least_common:
-                    del self.last_n_transitions[k]
+                    del self.last_n_transitions[k]            
+        self.confidence = min(0.8, 0.05 + 0.1 * len(self.opponent_history))
