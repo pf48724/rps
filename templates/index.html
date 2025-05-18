@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif; text-align:center; margin-top:50px;">
+<h1>Rock Paper Scissors</h1>
+<button onclick="play('rock')">Rock</button>
+<button onclick="play('paper')">Paper</button>
+<button onclick="play('scissors')">Scissors</button>
+<p id="result"></p>
+
+<script>
+async function play(user) {
+  const response = await fetch('/play', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ move: user }),
+  });
+
+  const data = await response.json();
+
+  if(data.error) {
+    alert(data.error);
+    return;
+  }
+
+  const text = `You chose ${user}, bot chose ${data.bot_move}. Result: ${data.result}.` +
+               ` Wins: ${data.score.wins}, Losses: ${data.score.losses}, Ties: ${data.score.ties}`;
+
+  document.getElementById('result').innerText = text;
+}
+</script>
+</body>
+</html>
