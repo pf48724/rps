@@ -1,32 +1,70 @@
 <!DOCTYPE html>
 <html>
-<body style="font-family:sans-serif; text-align:center; margin-top:50px;">
-<h1>Rock Paper Scissors</h1>
-<button onclick="play('rock')">Rock</button>
-<button onclick="play('paper')">Paper</button>
-<button onclick="play('scissors')">Scissors</button>
-<p id="result"></p>
-
-<script>
-async function play(user) {
-  const response = await fetch('/play', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ move: user }),
-  });
-
-  const data = await response.json();
-
-  if(data.error) {
-    alert(data.error);
-    return;
+<head>
+<style>
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin-top: 50px;
   }
+  button {
+    margin: 0 8px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    border: 2px solid #333;
+    border-radius: 5px;
+    background-color: white;
+  }
+  button:hover {
+    background-color: #eee;
+  }
+  button:active {
+    transform: scale(0.95);
+  }
+  #result {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    margin-top: 20px;
+    font-weight: bold;
+  }
+  #result.show {
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+  <h1>Rock Paper Scissors</h1>
+  <button onclick="play('rock')">Rock</button>
+  <button onclick="play('paper')">Paper</button>
+  <button onclick="play('scissors')">Scissors</button>
+  <p id="result"></p>
 
-  const text = `You chose ${user}, bot chose ${data.bot_move}. Result: ${data.result}.` +
-               ` Wins: ${data.score.wins}, Losses: ${data.score.losses}, Ties: ${data.score.ties}`;
+  <script>
+    async function play(user) {
+      const response = await fetch('/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ move: user }),
+      });
 
-  document.getElementById('result').innerText = text;
-}
-</script>
+      const data = await response.json();
+
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      const text = `You chose ${user}, bot chose ${data.bot_move}. Result: ${data.result}. ` +
+                   `Wins: ${data.score.wins}, Losses: ${data.score.losses}, Ties: ${data.score.ties}`;
+
+      const resultEl = document.getElementById('result');
+      resultEl.innerText = text;
+      resultEl.classList.remove('show');   
+      void resultEl.offsetWidth;            
+      resultEl.classList.add('show');      
+    }
+  </script>
 </body>
 </html>
