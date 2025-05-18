@@ -6,7 +6,7 @@ from rps_main import RPSMain
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY') or 'dev-key'
+app.secret_key = os.getenv('SECRET_KEY')
 app.config['SESSION_PERMANENT'] = False
 
 @app.route('/')
