@@ -58,7 +58,7 @@ class RPSMain:
         moves_played = len(self.opponent_history)
         
         if moves_played <= 2:
-            weights = {'markov': 0.1, 'frequency': 0.3, 'psychology': 0.5, 'pattern': 0.1}
+            weights = {'markov': 0.15, 'frequency': 0.25, 'psychology': 0.45, 'pattern': 0.15}
         elif moves_played <= 5:
             weights = {'markov': 0.3, 'frequency': 0.3, 'psychology': 0.3, 'pattern': 0.1}
         else:
@@ -97,7 +97,17 @@ class RPSMain:
     def _frequency_prediction(self):
         if not self.frequency_table:
             return random.choice(self.moves)
-        return self.frequency_table.most_common(1)[0][0]
+            
+        recent_moves = Counter(self.opponent_history[-10:])
+        for move, count in recent_moves.items():
+            self.frequency_table[move] += count
+            
+        prediction = self.frequency_table.most_common(1)[0][0]
+        
+        for move, count in recent_moves.items():
+            self.frequency_table[move] -= count
+            
+        return prediction
 
     def _psychology_prediction(self):
         if not self.opponent_history:
