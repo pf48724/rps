@@ -2,3 +2,4 @@ Flask
 numpy
 waitress
 gunicorn
+python-dotenv

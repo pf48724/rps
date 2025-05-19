@@ -1,69 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<style>
-  body {
-    font-family: sans-serif;
-    text-align: center;
-    margin-top: 50px;
-  }
-  button {
-    margin: 0 8px;
-    padding: 10px 20px;
-    font-size: 18px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.1s ease;
-    border: 2px solid #333;
-    border-radius: 5px;
-    background-color: white;
-  }
-  button:hover {
-    background-color: #eee;
-  }
-  button:active {
-    transform: scale(0.95);
-  }
-  #result {
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
-    margin-top: 20px;
-    font-weight: bold;
-  }
-  #result.show {
-    opacity: 1;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rock Paper Scissors</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 40px 20px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    button {
+      padding: 12px 28px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.1s ease, opacity 0.2s ease;
+      border: 2px solid #333;
+      border-radius: 6px;
+      background-color: #fff;
+      color: #333;
+      min-width: 120px;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #eee;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #result {
+      opacity: 0;
+      transition: opacity 0.4s ease-in-out;
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      min-height: 1.5em;
+    }
+
+    #result.show {
+      opacity: 1;
+    }
+
+    #result.win  { color: #2e7d32; }
+    #result.loss { color: #c62828; }
+    #result.tie  { color: #f9a825; }
+
+    #error {
+      color: #c62828;
+      margin-top: 12px;
+      font-weight: bold;
+      min-height: 1.5em;
+    }
+
+    .spinner {
+      display: none;
+      width: 32px;
+      height: 32px;
+      border: 4px solid #ccc;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 16px auto 0;
+    }
+
+    .spinner.active {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .reset-btn {
+      background-color: transparent;
+      border-color: #888;
+      color: #666;
+      font-size: 14px;
+      padding: 8px 20px;
+      min-width: auto;
+    }
+
+    .reset-btn:hover:not(:disabled) {
+      background-color: #f0f0f0;
+    }
+  </style>
 </head>
 <body>
   <h1>Rock Paper Scissors</h1>
-  <button onclick="play('rock')">Rock</button>
-  <button onclick="play('paper')">Paper</button>
-  <button onclick="play('scissors')">Scissors</button>
+  <p class="subtitle">Can you outsmart the bot?</p>
+
+  <div class="btn-group">
+    <button id="btn-rock"     onclick="play('rock')">Rock</button>
+    <button id="btn-paper"    onclick="play('paper')">Paper</button>
+    <button id="btn-scissors" onclick="play('scissors')">Scissors</button>
+  </div>
+
+  <button class="reset-btn" id="btn-reset" onclick="resetGame()">Reset Game</button>
+
+  <div class="spinner" id="spinner"></div>
   <p id="result"></p>
+  <p id="error"></p>
 
   <script>
-    async function play(user) {
-      const response = await fetch('/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ move: user }),
-      });
+    const spinner = document.getElementById('spinner');
+    const resultEl = document.getElementById('result');
+    const errorEl = document.getElementById('error');
+    const buttons = [
+      document.getElementById('btn-rock'),
+      document.getElementById('btn-paper'),
+      document.getElementById('btn-scissors'),
+      document.getElementById('btn-reset')
+    ];
 
-      const data = await response.json();
-
-      if (data.error) {
-        alert(data.error);
-        return;
+    function setLoading(isLoading) {
+      buttons.forEach(btn => btn.disabled = isLoading);
+      spinner.classList.toggle('active', isLoading);
+      if (isLoading) {
+        errorEl.textContent = '';
       }
+    }
 
-      const text = `You chose ${user}, bot chose ${data.bot_move}. Result: ${data.result}. ` +
-                   `Wins: ${data.score.wins}, Losses: ${data.score.losses}, Ties: ${data.score.ties}`;
-
-      const resultEl = document.getElementById('result');
+    function showResult(text, resultClass) {
+      resultEl.className = '';
       resultEl.innerText = text;
-      resultEl.classList.remove('show');   
-      void resultEl.offsetWidth;            
-      resultEl.classList.add('show');      
+      void resultEl.offsetWidth;
+      resultEl.classList.add('show', resultClass);
+    }
+
+    async function play(user) {
+      setLoading(true);
+      try {
+        const response = await fetch('/play', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ move: user }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Server error (${response.status})`);
+        }
+
+        const data = await response.json();
+
+        const text = `You chose ${user}, bot chose ${data.bot_move}. Result: ${data.result}. ` +
+                     `Wins: ${data.score.wins}, Losses: ${data.score.losses}, Ties: ${data.score.ties}`;
+
+        showResult(text, data.result);
+      } catch (err) {
+        errorEl.textContent = 'Error: ' + err.message;
+        resultEl.className = '';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function resetGame() {
+      setLoading(true);
+      try {
+        const response = await fetch('/reset', { method: 'POST' });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Server error (${response.status})`);
+        }
+        const data = await response.json();
+        showResult('Game reset. Wins: 0, Losses: 0, Ties: 0', 'tie');
+      } catch (err) {
+        errorEl.textContent = 'Error: ' + err.message;
+      } finally {
+        setLoading(false);
+      }
     }
   </script>
 </body>
